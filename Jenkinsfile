@@ -23,12 +23,14 @@ pipeline {
             steps {
                 script {
                     echo '====== Installing Dependencies ======'
-                    bat '''
-                        python -m venv venv
-                        call venv\\Scripts\\activate.bat
-                        python -m pip install --upgrade pip
+                    sh '''
+                        if [ ! -d "venv" ]; then
+                            python3 -m venv venv
+                        fi
+                        . venv/bin/activate
+                        pip install --upgrade pip
                         pip install -r requirements.txt
-                        echo Dependencies installed successfully
+                        echo "Dependencies installed successfully"
                     '''
                 }
             }
@@ -65,26 +67,29 @@ pipeline {
             steps {
                 script {
                     echo '====== Deploying Application ======'
-                    bat '''
-                        REM Create deployment directory
-                        if not exist "%DEPLOYMENT_DIR%" mkdir "%DEPLOYMENT_DIR%"
+                    sh '''
+                        # Create deployment directory
+                        mkdir -p ${DEPLOYMENT_DIR}
                         
-                        REM Copy application files
-                        xcopy /E /Y /I . "%DEPLOYMENT_DIR%"
+                        # Copy application files (excluding virtual environment and git)
+                        cp -r app.py requirements.txt templates ${DEPLOYMENT_DIR}/ || true
                         
-                        REM Create deployment manifest
-                        (
-                            echo Deployment Date: %date% %time%
-                            echo Deployment Directory: %DEPLOYMENT_DIR%
-                            echo Git Commit: 
-                            for /f "tokens=*" %%a in ('git rev-parse HEAD') do echo %%a
-                            echo Branch: 
-                            for /f "tokens=*" %%a in ('git rev-parse --abbrev-ref HEAD') do echo %%a
-                        ) > "%DEPLOYMENT_DIR%\\DEPLOYMENT_INFO.txt"
+                        # Set permissions
+                        chmod -R 755 ${DEPLOYMENT_DIR}
                         
-                        echo Application deployed to: %DEPLOYMENT_DIR%
-                        echo Deployment manifest created
-                        dir "%DEPLOYMENT_DIR%"
+                        # Create deployment manifest
+                        cat > ${DEPLOYMENT_DIR}/DEPLOYMENT_INFO.txt << EOF
+Deployment Date: $(date)
+Deployment Directory: ${DEPLOYMENT_DIR}
+Git Commit: $(git rev-parse HEAD)
+Branch: $(git rev-parse --abbrev-ref HEAD)
+Build Number: ${BUILD_NUMBER}
+Build URL: ${BUILD_URL}
+EOF
+                        
+                        echo "Application deployed to: ${DEPLOYMENT_DIR}"
+                        echo "Deployment manifest created"
+                        ls -la ${DEPLOYMENT_DIR}
                     '''
                 }
             }
