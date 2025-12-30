@@ -3,8 +3,13 @@ pipeline {
     
     environment {
         REPO_URL = 'https://github.com/Asad-Khurshid1585/SSD-Final.git'
-        DEPLOYMENT_DIR = 'C:\\SSD-App-Deployment'
+        DEPLOYMENT_DIR = '/var/www/ssd-app'
         PYTHON_VERSION = '3.10'
+    }
+    
+    options {
+        timestamps()
+        timeout(time: 1, unit: 'HOURS')
     }
     
     stages {
@@ -24,12 +29,15 @@ pipeline {
                 script {
                     echo '====== Installing Dependencies ======'
                     sh '''
-                        if [ ! -d "venv" ]; then
-                            python3 -m venv venv
-                        fi
-                        . venv/bin/activate
-                        pip install --upgrade pip
-                        pip install -r requirements.txt
+                        # Show Python version
+                        python3 --version
+                        
+                        # Install pip packages directly
+                        python3 -m pip install --upgrade pip setuptools wheel
+                        python3 -m pip install Flask==3.0.0 Flask-SQLAlchemy==3.1.1 SQLAlchemy==2.0.23 pytest==9.0.2
+                        
+                        # Verify installation
+                        python3 -m pip list | grep -E "Flask|SQLAlchemy|pytest"
                         echo "Dependencies installed successfully"
                     '''
                 }
@@ -40,10 +48,10 @@ pipeline {
             steps {
                 script {
                     echo '====== Running Unit Tests ======'
-                    bat '''
-                        call venv\\Scripts\\activate.bat
-                        pytest test_app.py -v --tb=short
-                        echo Unit tests completed
+                    sh '''
+                        echo "Running pytest tests..."
+                        python3 -m pytest test_app.py -v --tb=short
+                        echo "Unit tests completed"
                     '''
                 }
             }
@@ -53,11 +61,10 @@ pipeline {
             steps {
                 script {
                     echo '====== Building Application ======'
-                    bat '''
-                        call venv\\Scripts\\activate.bat
-                        echo Application structure verified
-                        dir /s
-                        echo Build artifacts prepared
+                    sh '''
+                        echo "Application structure verified"
+                        ls -la
+                        echo "Build artifacts prepared"
                     '''
                 }
             }
@@ -73,6 +80,7 @@ pipeline {
                         
                         # Copy application files (excluding virtual environment and git)
                         cp -r app.py requirements.txt templates ${DEPLOYMENT_DIR}/ || true
+                        cp -r test_app.py ${DEPLOYMENT_DIR}/ || true
                         
                         # Set permissions
                         chmod -R 755 ${DEPLOYMENT_DIR}
@@ -85,6 +93,7 @@ Git Commit: $(git rev-parse HEAD)
 Branch: $(git rev-parse --abbrev-ref HEAD)
 Build Number: ${BUILD_NUMBER}
 Build URL: ${BUILD_URL}
+Python Version: $(python3 --version)
 EOF
                         
                         echo "Application deployed to: ${DEPLOYMENT_DIR}"
