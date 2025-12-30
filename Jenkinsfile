@@ -3,7 +3,7 @@ pipeline {
     
     environment {
         REPO_URL = 'https://github.com/Asad-Khurshid1585/SSD-Final.git'
-        DEPLOYMENT_DIR = '/var/www/ssd-app'
+        DEPLOYMENT_DIR = '/var/lib/jenkins/deployments/ssd-app'
         PYTHON_VERSION = '3.10'
     }
     
