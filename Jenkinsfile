@@ -32,9 +32,9 @@ pipeline {
                         # Show Python version
                         python3 --version
                         
-                        # Install pip packages directly
-                        python3 -m pip install --upgrade pip setuptools wheel
-                        python3 -m pip install Flask==3.0.0 Flask-SQLAlchemy==3.1.1 SQLAlchemy==2.0.23 pytest==9.0.2
+                        # Install pip packages with --break-system-packages to bypass PEP 668
+                        python3 -m pip install --upgrade pip setuptools wheel --break-system-packages
+                        python3 -m pip install Flask==3.0.0 Flask-SQLAlchemy==3.1.1 SQLAlchemy==2.0.23 pytest==9.0.2 --break-system-packages
                         
                         # Verify installation
                         python3 -m pip list | grep -E "Flask|SQLAlchemy|pytest"
